@@ -1,4 +1,15 @@
-print("Proyecto final Teoría de la Computación")
+#TODO hay error, bug
+
+#Proyecto final teoría de la computación
+#Validador de contrseñas
+'''
+Condiciones:
+•	Debe iniciar con una letra
+•	Debe contener al menos un número
+•	Debe contener al menos un carácter especial de estos: @, #, $, %, &
+•	Debe tener mínimo 8 caracteres
+•	Debe contener al menos una letra mayúscula
+'''
 
 class ValidadorPasswordAF:
     def __init__(self):
@@ -33,6 +44,17 @@ class ValidadorPasswordAF:
         """Aplicar transición según el carácter actual"""
         self.longitud += 1
         estado_anterior = self.estado_actual
+        
+        # Si ya estamos en estado de aceptación, nos mantenemos ahí
+        if self.estado_actual == 'q_acept':
+            self.historial.append({
+                'caracter': caracter,
+                'estado_anterior': estado_anterior,
+                'estado_actual': self.estado_actual,
+                'tipo': 'aceptado',
+                'longitud': self.longitud
+            })
+            return
         
         # Determinar tipo de carácter
         if caracter in self.LETRAS_MIN:
@@ -71,18 +93,20 @@ class ValidadorPasswordAF:
                 
         elif self.estado_actual in ['q2', 'q3', 'q4']:
             # Una vez en q2, q3 o q4, permanecemos en estados válidos
-            # hasta que se cumplan todas las condiciones
             if tipo == 'invalido':
                 self.estado_actual = 'q_error'
-            # Permanece en el mismo estado o transiciona para cumplir otras condiciones
-            elif self.estado_actual == 'q2' and tipo == 'letra_mayus':
-                self.estado_actual = 'q4'
-            elif self.estado_actual == 'q2' and tipo == 'especial':
-                self.estado_actual = 'q3'
-            elif self.estado_actual == 'q3' and tipo == 'letra_mayus':
-                self.estado_actual = 'q4'
-            elif self.estado_actual == 'q3' and tipo == 'numero':
-                self.estado_actual = 'q2'
+            # Transiciones entre estados para cumplir condiciones faltantes
+            elif self.estado_actual == 'q2':
+                if tipo == 'letra_mayus':
+                    self.estado_actual = 'q4'
+                elif tipo == 'especial':
+                    self.estado_actual = 'q3'
+            elif self.estado_actual == 'q3':
+                if tipo == 'letra_mayus':
+                    self.estado_actual = 'q4'
+                elif tipo == 'numero':
+                    self.estado_actual = 'q2'
+            # q4 ya tiene mayúscula, puede permanecer en q4 o ir a q2/q3
         
         # Verificar si alcanzamos estado de aceptación
         if (self.estado_actual in ['q2', 'q3', 'q4'] and 
@@ -114,9 +138,20 @@ class ValidadorPasswordAF:
             self.transicion(char)
             
             # Mostrar progreso
-            print(f"Carácter {i+1}: '{char}' → Estado: {self.estado_actual}")
+            estado_display = self.estado_actual
+            if self.estado_actual == 'q_acept':
+                estado_display = "q_acept ✅"
+            elif self.estado_actual == 'q_error':
+                estado_display = "q_error ❌"
+                
+            print(f"Carácter {i+1}: '{char}' → Estado: {estado_display}")
             self.mostrar_condiciones()
             print("-" * 30)
+            
+            # Si llegamos a estado de error, terminar
+            if self.estado_actual == 'q_error':
+                print(f"❌ Contraseña inválida en carácter {i+1}")
+                return False
         
         # Verificación final
         if self.estado_actual == 'q_acept':
@@ -137,6 +172,14 @@ class ValidadorPasswordAF:
             print(f"  {estado} {cond.replace('_', ' ').title()}")
         
         print(f"  📏 Longitud actual: {self.longitud}/8")
+        
+        # Mostrar estado actual del autómata
+        if self.estado_actual == 'q_acept':
+            print("  🎯 Estado: ACEPTACIÓN")
+        elif self.estado_actual == 'q_error':
+            print("  💥 Estado: ERROR")
+        else:
+            print(f"  🔄 Estado: {self.estado_actual}")
 
 # Programa principal
 def main():
@@ -149,6 +192,32 @@ def main():
     print("• Debe contener al menos un carácter especial (@ # $ % &)")
     print("• Debe tener al menos una mayúscula")
     print("• Longitud mínima: 8 caracteres")
+    print("=" * 60)
+    
+    # Casos de prueba automáticos
+    test_cases = [
+        "Passw0rd#",        # ✅ Válida
+        "Passw0rd#extra",   # ✅ Válida (más de 8 caracteres)
+        "password",         # ❌ Falta número, especial, mayúscula
+        "12345678",         # ❌ No inicia con letra  
+        "Password",         # ❌ Falta número y especial
+        "passw0rd",         # ❌ Falta especial y mayúscula
+        "P@ssw",            # ❌ Muy corta
+        "A1b2c3d4e5f6#",    # ✅ Válida (más de 8)
+    ]
+    
+    print("\n🧪 EJECUTANDO CASOS DE PRUEBA AUTOMÁTICOS:")
+    print("=" * 60)
+    
+    for i, test_case in enumerate(test_cases, 1):
+        print(f"\n📋 Caso de prueba {i}: '{test_case}'")
+        print("-" * 40)
+        resultado = validador.validar_password(test_case)
+        print(f"Resultado: {'✅ VÁLIDA' if resultado else '❌ INVÁLIDA'}")
+        print("=" * 60)
+    
+    # Modo interactivo
+    print("\n🎮 MODO INTERACTIVO:")
     print("=" * 60)
     
     while True:
