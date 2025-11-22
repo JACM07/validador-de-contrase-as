@@ -1,4 +1,6 @@
-# validador_contrasena_af.py
+#Proyecto final Teoría de la Computación
+#José Antonio Castro Mariscal
+
 # Autómata finito (modelo matricial) para validar contraseñas:
 # Reglas:
 # 1) Debe iniciar con letra
@@ -9,7 +11,7 @@
 
 from typing import Dict, List, Tuple
 
-# --- Parámetros / categorías ---
+#Parámetros / categorías 
 SPECIALS = set("@#$%&")
 CATEGORIES = ["LOWER", "UPPER", "DIGIT", "SPECIAL", "OTHER"]
 
@@ -88,7 +90,7 @@ for length_index in range(1, N_LENGTH+1):  # 1..8 (8 significa 8+)
             next_state = product_state_index(next_len, int(next_D), int(next_S), int(next_U))
             transition[state_idx][cat] = next_state
 
-# ---- Funciones auxiliares ----
+#Funciones auxiliares 
 def is_accepting(state_idx: int) -> bool:
     if state_idx < FIRST_PRODUCT_STATE or state_idx == DEAD:
         return False
@@ -102,7 +104,7 @@ def state_str(idx: int) -> str:
     l, D, S, U = decode_product_state(idx)
     return f"q_len{l}_D{D}S{S}U{U}"
 
-# ---- Simulación interactiva con mensajes paso a paso ----
+#Simulación con mensajes paso a paso 
 def simulate_with_messages(password: str):
     state = Q0
     # estados previos de flags para detectar cambios
@@ -115,21 +117,21 @@ def simulate_with_messages(password: str):
         print(f"\nPaso {i}: leído '{ch}' (categoría {cat})")
         if next_state == DEAD:
             if state == Q0 and cat != "LOWER" and cat != "UPPER":
-                print("→ Primer carácter no es letra. Condición 'inicia con letra' fallida. TERMINADO.")
+                print("Primer carácter no es letra. Condición 'inicia con letra' fallida. TERMINADO.")
             else:
-                print("→ Símbolo inválido detectado (no permitido). CONTRASEÑA RECHAZADA. TERMINADO.")
+                print("Símbolo inválido detectado (no permitido). CONTRASEÑA RECHAZADA. TERMINADO.")
             return False
         # decodificar estado siguiente para ver cambios en flags / longitud
         length_index, D, S, U = decode_product_state(next_state)
         # mensaje cuando una condición pasa a cumplida
         if prev_len < 8 and length_index == N_LENGTH:
-            print("→ Condición de longitud mínima (>=8) ahora cumplida (se alcanzó 8 caracteres).")
+            print("Condición de longitud mínima (>=8) ahora cumplida (se alcanzó 8 caracteres).")
         if prev_D == 0 and D == 1:
-            print("→ Condición 'al menos un número' cumplida (se leyó un dígito).")
+            print("Condición 'al menos un número' cumplida (se leyó un dígito).")
         if prev_S == 0 and S == 1:
-            print("→ Condición 'al menos un caracter especial' cumplida (se leyó @/#/$/%/&).")
+            print("Condición 'al menos un caracter especial' cumplida (se leyó @/#/$/%/&).")
         if prev_U == 0 and U == 1:
-            print("→ Condición 'al menos una mayúscula' cumplida (se leyó una letra mayúscula).")
+            print("Condición 'al menos una mayúscula' cumplida (se leyó una letra mayúscula).")
         # avanzar
         state = next_state
         prev_len, prev_D, prev_S, prev_U = length_index, D, S, U
