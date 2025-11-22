@@ -10,10 +10,12 @@
 # 5) Debe contener al menos una letra mayúscula
 
 from typing import Dict, List, Tuple
+from colorama import init, Fore, Style, Back #Dar color al texto
+init()
 
 #Parámetros / categorías 
 SPECIALS = set("@#$%&")
-CATEGORIES = ["LOWER", "UPPER", "DIGIT", "SPECIAL", "OTHER"]
+CATEGORIES = ["MINUSCULA", "MAYUSCULA", "DIGITO", "ESPECIAL", "OTRO"]
 
 # --- Mapeo de estados ---
 # state 0 = q0 (antes de leer)
@@ -46,11 +48,11 @@ def decode_product_state(idx: int) -> Tuple[int,int,int,int]:
 
 # --- Construcción de la tabla de transición: lista de dicts ---
 def categorize(ch: str) -> str:
-    if ch.islower(): return "LOWER"
-    if ch.isupper(): return "UPPER"
-    if ch.isdigit(): return "DIGIT"
-    if ch in SPECIALS: return "SPECIAL"
-    return "OTHER"
+    if ch.islower(): return "MINUSCULA"
+    if ch.isupper(): return "MAYUSCULA"
+    if ch.isdigit(): return "DIGITO"
+    if ch in SPECIALS: return "ESPECIAL"
+    return "OTRO"
 
 # Inicializa la tabla con DEAD por defecto
 transition: List[Dict[str,int]] = [ {cat: DEAD for cat in CATEGORIES} for _ in range(TOTAL_STATES) ]
@@ -59,13 +61,13 @@ transition: List[Dict[str,int]] = [ {cat: DEAD for cat in CATEGORIES} for _ in r
 for cat in CATEGORIES:
     transition[DEAD][cat] = DEAD
 
-# Desde q0 (estado 0): solo letras (lower o upper) aceptables
+# Desde q0 (estado 0): solo letras (minuscula o mayuscula) aceptables
 for cat in CATEGORIES:
-    if cat == "LOWER":
-        # length=1, U=0, D=0, S=0
+    if cat == "MINUSCULA":
+        # length=1
         transition[Q0][cat] = product_state_index(1, 0, 0, 0)
-    elif cat == "UPPER":
-        # length=1, U=1
+    elif cat == "MAYUSCULA":
+        # length=1
         transition[Q0][cat] = product_state_index(1, 0, 0, 1)
     else:
         transition[Q0][cat] = DEAD
@@ -79,14 +81,14 @@ for length_index in range(1, N_LENGTH+1):  # 1..8 (8 significa 8+)
         state_idx = product_state_index(length_index, D, S, U)
         # para cada categoría calculamos next state
         for cat in CATEGORIES:
-            if cat == "OTHER":
+            if cat == "OTRO":
                 transition[state_idx][cat] = DEAD
                 continue
             # longitud siguiente
             next_len = length_index + 1 if length_index < N_LENGTH else N_LENGTH
-            next_D = D or (cat == "DIGIT")
-            next_S = S or (cat == "SPECIAL")
-            next_U = U or (cat == "UPPER")
+            next_D = D or (cat == "DIGITO")
+            next_S = S or (cat == "ESPECIAL")
+            next_U = U or (cat == "MAYUSCULA")
             next_state = product_state_index(next_len, int(next_D), int(next_S), int(next_U))
             transition[state_idx][cat] = next_state
 
@@ -110,54 +112,54 @@ def simulate_with_messages(password: str):
     # estados previos de flags para detectar cambios
     prev_D = prev_S = prev_U = 0
     prev_len = 0
-    print("Iniciando simulación del AF para validar contraseña...")
+    print(Fore.CYAN+"Iniciando simulación del AF para validar contraseña..."+ Style.RESET_ALL)
     for i, ch in enumerate(password, start=1):
         cat = categorize(ch)
         next_state = transition[state].get(cat, DEAD)
         print(f"\nPaso {i}: leído '{ch}' (categoría {cat})")
         if next_state == DEAD:
-            if state == Q0 and cat != "LOWER" and cat != "UPPER":
-                print("Primer carácter no es letra. Condición 'inicia con letra' fallida. TERMINADO.")
+            if state == Q0 and cat != "MINUSCULA" and cat != "MAYUSCULA":
+                print(Fore.RED + "Primer carácter no es letra. Condición 'inicia con letra' fallida. TERMINADO."+ Style.RESET_ALL)
             else:
-                print("Símbolo inválido detectado (no permitido). CONTRASEÑA RECHAZADA. TERMINADO.")
+                print(Fore.RED + "Símbolo inválido detectado (no permitido). CONTRASEÑA RECHAZADA. TERMINADO."+ Style.RESET_ALL)
             return False
         # decodificar estado siguiente para ver cambios en flags / longitud
         length_index, D, S, U = decode_product_state(next_state)
         # mensaje cuando una condición pasa a cumplida
         if prev_len < 8 and length_index == N_LENGTH:
-            print("Condición de longitud mínima (>=8) ahora cumplida (se alcanzó 8 caracteres).")
+            print(Fore.GREEN +"Condición de longitud mínima (>=8) ahora cumplida (se alcanzó 8 caracteres)."+ Style.RESET_ALL)
         if prev_D == 0 and D == 1:
-            print("Condición 'al menos un número' cumplida (se leyó un dígito).")
+            print(Fore.GREEN +"Condición 'al menos un número' cumplida (se leyó un dígito)."+ Style.RESET_ALL)
         if prev_S == 0 and S == 1:
-            print("Condición 'al menos un caracter especial' cumplida (se leyó @/#/$/%/&).")
+            print(Fore.GREEN +"Condición 'al menos un caracter especial' cumplida (se leyó @/#/$/%/&)."+ Style.RESET_ALL)
         if prev_U == 0 and U == 1:
-            print("Condición 'al menos una mayúscula' cumplida (se leyó una letra mayúscula).")
+            print(Fore.GREEN +"Condición 'al menos una mayúscula' cumplida (se leyó una letra mayúscula)."+ Style.RESET_ALL)
         # avanzar
         state = next_state
         prev_len, prev_D, prev_S, prev_U = length_index, D, S, U
-        print(f"→ Estado actual: {state_str(state)}")
+        print(Fore.BLUE +f"→ Estado actual: {state_str(state)}"+ Style.RESET_ALL)
 
     # terminado de leer toda la cadena: evaluar aceptación final
     if is_accepting(state):
-        print("\nRESULTADO: CONTRASEÑA ACEPTADA (todas las condiciones cumplidas).")
+        print(Fore.WHITE + Back.GREEN +"\nRESULTADO: CONTRASEÑA ACEPTADA (todas las condiciones cumplidas)."+ Style.RESET_ALL)
         return True
     else:
-        print("\nRESULTADO: CONTRASEÑA RECHAZADA.")
+        print(Fore.WHITE+  Back.RED +"\nRESULTADO: CONTRASEÑA RECHAZADA."+ Style.RESET_ALL)
         # indicar qué condiciones faltaron
         length_index, D, S, U = decode_product_state(state) if state not in (Q0, DEAD) else (0,0,0,0)
         if length_index < N_LENGTH:
-            print(f" - Longitud insuficiente: {length_index} caracteres (se requieren >= {N_LENGTH}).")
+            print(Fore.YELLOW + f" - Longitud insuficiente: {length_index} caracteres (se requieren >= {N_LENGTH})."+ Style.RESET_ALL)
         if D == 0:
-            print(" - Falta al menos un número.")
+            print(Fore.YELLOW +" - Falta al menos un número."+ Style.RESET_ALL)
         if S == 0:
-            print(" - Falta al menos un carácter especial (@ # $ % &).")
+            print(Fore.YELLOW +" - Falta al menos un carácter especial (@ # $ % &)."+ Style.RESET_ALL)
         if U == 0:
-            print(" - Falta al menos una letra mayúscula.")
+            print(Fore.YELLOW +" - Falta al menos una letra mayúscula."+ Style.RESET_ALL)
         if state == Q0:
-            print(" - No se leyó ningún carácter (la contraseña está vacía).")
+            print(Fore.YELLOW +" - No se leyó ningún carácter (la contraseña está vacía)."+ Style.RESET_ALL)
         return False
 
-# ---- Modo consola ----
+# ---- Ejecución en modo consola ----
 if __name__ == "__main__":
     pwd = input("Ingresa la contraseña a validar: ").strip()
     simulate_with_messages(pwd)
